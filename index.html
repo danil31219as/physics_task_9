@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Моделирование амплитудной модуляции сигнала</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<h1>Моделирование амплитудной модуляции сигнала</h1>
+
+<label for="frequency1">Частота несущего колебания: </label>
+<input type="number" id="frequency1" step="0.1" value="1">
+
+<label for="amplitude1">Амплитуда несущего колебания: </label>
+<input type="number" id="amplitude1" step="0.1" value="1">
+
+<label for="frequency2">Частота информационного сигнала: </label>
+<input type="number" id="frequency2" step="0.1" value="0.9">
+
+<label for="amplitude2">Амплитуда информационного сигнала: </label>
+<input type="number" id="amplitude2" step="0.1" value="1">
+
+<canvas id="myChart" width="400" height="200"></canvas>
+
+<script>
+
+
+    function calculateSpectrum(data) {
+        const N = data.length;
+        let spectrum = new Array(N).fill(0);
+        for (let k = 0; k < N; k++) {
+            let sumReal = 0;
+            let sumImag = 0;
+            for (let n = 0; n < N; n++) {
+                const angle = (2 * Math.PI * k * n) / N;
+                sumReal += data[n] * Math.cos(angle);
+                sumImag += data[n] * Math.sin(angle);
+            }
+            spectrum[k] = Math.sqrt(sumReal * sumReal + sumImag * sumImag) / N;
+        }
+        return spectrum;
+    }
+
+
+    function updateChart() {
+        const frequency1 = Math.abs(parseFloat(document.getElementById('frequency1').value));
+        const amplitude1 = Math.abs(parseFloat(document.getElementById('amplitude1').value));
+        const frequency2 = Math.abs(parseFloat(document.getElementById('frequency2').value));
+        const amplitude2 = Math.abs(parseFloat(document.getElementById('amplitude2').value));
+
+        const ctx = document.getElementById('myChart').getContext('2d');
+
+        const data = {
+            labels: [],
+            datasets: [{
+                label: 'Несущий сигнал',
+                data: [],
+                fill: false,
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }, {
+                label: 'Информационный сигнал',
+                data: [],
+                fill: false,
+                borderColor: 'rgb(192,75,173)',
+                tension: 0.1
+            },
+                {
+                    label: 'Результат модуляции',
+                    data: [],
+                    fill: false,
+                    borderColor: 'rgb(210,255,14)',
+                    tension: 0.1
+                },
+                {
+                    label: 'Спектр несущего сигнала',
+                    data: [],
+                    fill: false,
+                    borderColor: 'rgb(255,14,14)',
+                    tension: 0.1
+                },
+                {
+                    label: 'Спектр информационного сигнала',
+                    data: [],
+                    fill: false,
+                    borderColor: 'rgb(46,255,14)',
+                    tension: 0.1
+                },
+                {
+                    label: 'Спектр модуляции',
+                    data: [],
+                    fill: false,
+                    borderColor: 'rgb(0,21,250)',
+                    tension: 0.1
+                }]
+        };
+
+        for (let time = 0; time <= 100; time += 0.1) {
+            data.labels.push(time.toFixed(4));
+            let x1 = amplitude1 * Math.sin(frequency1 * time)
+            let x2 = amplitude2 * Math.sin(frequency2 * time)
+            let x12 = (amplitude1 + amplitude2 * Math.sin(frequency2 * time)) * Math.sin(frequency1 * time)
+
+            data.datasets[0].data.push(x1.toFixed(10));
+            data.datasets[1].data.push(x2.toFixed(10));
+            data.datasets[2].data.push(x12.toFixed(10));
+        }
+        data.datasets[3].data = calculateSpectrum(data.datasets[0].data)
+        data.datasets[4].data = calculateSpectrum(data.datasets[1].data)
+        data.datasets[5].data = calculateSpectrum(data.datasets[2].data)
+        
+
+        if (window.myLineChart) {
+            window.myLineChart.data = data;
+            window.myLineChart.update();
+        } else {
+            window.myLineChart = new Chart(ctx, {
+                type: 'line',
+                data: data,
+                options: {
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            title: {
+                                display: true,
+                                text: 'Время (с)'
+                            }
+                        },
+                    }
+                }
+            });
+        }
+    }
+
+    document.getElementById('frequency1').addEventListener('input', updateChart);
+    document.getElementById('frequency2').addEventListener('input', updateChart);
+    document.getElementById('amplitude1').addEventListener('input', updateChart);
+    document.getElementById('amplitude2').addEventListener('input', updateChart);
+
+    updateChart();
+</script>
+</body>
+</html>
